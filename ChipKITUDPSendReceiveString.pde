@@ -1,5 +1,9 @@
 #include <chipKITEthernet.h>
 #include <Wire.h>
+#include <IOShieldOled.h>
+
+
+// TODO: Change SPI display pins
 // A zero MAC address means that the chipKIT MAC is to be used
 byte mac[] = {  
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -22,6 +26,15 @@ char  ReplyBuffer[] = "ack";       // a string to send back
 UDP Udp;
 
 void setup() {
+  IOShieldOled.begin();
+  IOShieldOled.clearBuffer();
+  IOShieldOled.setCursor(0, 0);
+  IOShieldOled.putString("R.A.D. NYC");
+  IOShieldOled.setCursor(0, 2);
+  IOShieldOled.putString("Dangerous");
+  IOShieldOled.setCursor(0, 3);
+  IOShieldOled.putString("MON ST Tester");
+  
   pinMode(13, OUTPUT);//led connected to indicate T/B ON
   
   Ethernet.begin(mac,ip);
@@ -32,23 +45,16 @@ void setup() {
 
   Wire.begin(); //Begin i2c communication
 
-    //SETUP PORT EXPANDERS AS OUTPUT
+  //SETUP PORT EXPANDERS AS OUTPUT
   Wire.beginTransmission(0x20); //address of U501
   Wire.send(0x06); //  Access port direction register
   Wire.send(0x00); //  Set Port0 all output 
   Wire.send(0x00); //  Set Port1 all output
   Wire.endTransmission();
 
-  //  Wire.beginTransmission(0x20); //address of U501
-  //  Wire.send(0x06); //  Access port direction register
-  //  Wire.send(0x00); //  Set Port0 all output 
-  //  Wire.send(0x00); //  Set Port1 all output
-  //  Wire.endTransmission();
-
   Serial.println("Setup Done");  
-
-
 }
+
 
 void loop() {
   unsigned int time = 0;
