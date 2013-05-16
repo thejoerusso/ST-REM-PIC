@@ -26,7 +26,7 @@ unsigned short remotePort; // holds received packet's originating port
 // buffers for receiving and sending data
 #define UDP_TX_PACKET_MAX_SIZE 1024
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet,
-char  ReplyBuffer[] = "ack";       // a string to send back
+char ReplyBuffer[] = "ack";       // a string to send back
 
 // A UDP instance to let us send and receive packets over UDP
 UDP Udp;
@@ -34,8 +34,10 @@ UDP Udp;
 //Relay State Vars
 int input  = 1;
 int output = 1;
-int vol    = 0;
+int vol = 0;
 
+bool debug = true;
+bool packetDebug = false;
 
 //************************************************************
 //**                      - SETUP -                         **
@@ -76,6 +78,7 @@ void setup() {
 //**                     - MAIN LOOP -                      **
 //************************************************************
 void loop() {
+
   unsigned int time = 0;
 
   // if there's data available, read a packet
@@ -88,25 +91,39 @@ void loop() {
 
     // read the packet into packetBufffer and get the senders IP addr and port number
     Udp.readPacket(packetBuffer,UDP_TX_PACKET_MAX_SIZE, remoteIp, remotePort);
-    Serial.println(packetBuffer);
+    if (packetDebug == true){
+      Serial.println(packetBuffer);
+    }
 
     if(strcmp(packetBuffer, "I1") == 0){
       input = 1;
     }
-
-    if(strcmp(packetBuffer, "I2") == 0){
+    
+    else if(strcmp(packetBuffer, "I2") == 0){
       input = 2;
     }
     
-    if(strcmp(packetBuffer, "I3") == 0){
+    else if(strcmp(packetBuffer, "I3") == 0){
       input = 3;
     }
     
-    if(strcmp(packetBuffer, "I4") == 0){
+    else if(strcmp(packetBuffer, "I4") == 0){
       input = 4;
     }
     
-   Udp.sendPacket( ReplyBuffer, remoteIp, remotePort);  
+    else {
+      vol = atoi(packetBuffer);
+    }
+    
+//    if(strncmp (packetBuffer, "Vxx", 1) == 0){//check for "V"
+//      vol[0] = packetBuffer[1];//this works
+//      vol[1] = packetBuffer[2];//this does not?
+//      Serial.println(vol[1]);
+//    }
+
+   
+   updateST(input, 0, vol);
+   Udp.sendPacket(ReplyBuffer, remoteIp, remotePort);  
   } 
 
 }
@@ -117,7 +134,12 @@ void loop() {
 //************************************************************
 
 void updateST(int in, int out, int vol) {
-  Serial.println(in, out, vol);
+  if (debug == true){
+  Serial.print("IN: ");
+  Serial.println(in);
+  Serial.print("VOL: ");
+  Serial.println(vol);
+  } 
 }
 
 void setIn1() {
