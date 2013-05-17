@@ -112,31 +112,35 @@ void loop() {
     }
 
     if(strcmp(packetBuffer, "I1") == 0){
-      input = 0;
+      inputByte = B00000001;
     }
 
     else if(strcmp(packetBuffer, "I2") == 0){
-      input = 1;
+      inputByte = B00000010;
     }
 
     else if(strcmp(packetBuffer, "I3") == 0){
-      input = 2;
+      inputByte = B00000100;
     }
 
     else if(strcmp(packetBuffer, "I4") == 0){
-      input = 3;
+      inputByte = B00001000;
     }
 
     else if(strcmp(packetBuffer, "O1") == 0){
-      output = 0;
+      outputByte = B00010000;
     }
 
     else if(strcmp(packetBuffer, "O2") == 0){
-      output = 1;
+      outputByte = B00100010;
     }
 
     else if(strcmp(packetBuffer, "O3") == 0){
-      output = 2;
+      outputByte = B01000100;
+    }
+    
+    else if(strcmp(packetBuffer, "O4") == 0){
+      outputByte = B10000100;
     }
 
     else {
@@ -156,8 +160,11 @@ void loop() {
 
 void updateState() {
   //Set I/O
-  inputByte = input; //corresponds directly to relay positions
-  outputByte = output << 4; //left shift into correct bits
+  
+//  Serial.print("inputByte: ");
+//  Serial.println(inputByte, BIN);
+//  Serial.print("outputByte: ");
+//  Serial.println(outputByte, BIN);
   ioByte = inputByte | outputByte; //bitwise OR to combine into one byte
   Wire.beginTransmission(0x20);  //i2c address of U501 on ST
   Wire.send(0x00);  //access GP0       
@@ -173,10 +180,8 @@ void updateState() {
   // (other relays on this expander are not implemented yet and will remain off)
 
   if (debug == true){
-    Serial.print("IN: ");
-    Serial.println(ioByte);
-    Serial.print("VOL: ");
-    Serial.println(volByte);
+    Serial.println(ioByte, BIN);
+    Serial.println(volByte, BIN);
   } 
 }
 
