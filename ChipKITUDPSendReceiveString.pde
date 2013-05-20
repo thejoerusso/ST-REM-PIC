@@ -1,6 +1,6 @@
 //************************************************************
 //**                                                        **
-//**                ST REMOTE TEST PROGRAM                  **
+//**             ST REMOTE TEST PROGRAM                     **
 //**                RAD NYC 5/15/13                         **
 //**                                                        **
 //************************************************************
@@ -9,6 +9,7 @@
 #include <Wire.h>
 #include <IOShieldOled.h>
 
+
 //************************************************************
 //**                  - GLOBAL VARS -                       **
 //************************************************************
@@ -16,38 +17,42 @@
 bool debug = true;
 bool packetDebug = false;
 
-
-// A zero MAC address means that the chipKIT MAC is to be used
 byte mac[] = {  
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };          // A zero MAC address means that the chipKIT MAC is to be used
 byte ip[] = { 
-  192,168,2,250 };
+  192,168,002,250 };                               //default ip
+unsigned short localPort = 6000;  
+// default local port to listen on
+byte remoteIp[4];                                // holds received packet's originating IP
+unsigned short remotePort;                       // holds received packet's originating port
 
-unsigned short localPort = 6000;      // local port to listen on
-
-// the next two variables are set when a packet is received
-byte remoteIp[4];        // holds received packet's originating IP
-unsigned short remotePort; // holds received packet's originating port
-
-// buffers for receiving and sending data
 #define UDP_TX_PACKET_MAX_SIZE 1024
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet,
-char ReplyBuffer[] = "ack";       // a string to send back
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];       //buffer to hold incoming packet,
+char ReplyBuffer[] = "ack";       
 
-// A UDP instance to let us send and receive packets over UDP
-UDP Udp;
-
+UDP Udp;                                         // A UDP instance to let us send and receive packets over UDP
 
 //Relay State Vars
 int input  = 1;
 int output = 1;
 int vol = 0;
+int encoderTestInt = 0;
 
 byte inputByte = 0;
 byte outputByte = 0;
-byte ioByte = 0; //the byte to send
+byte ioByte = 0;                                 //the byte to send
 
+int lButtonPin = A0;
+int uButtonPin = A1;
+int rButtonPin = A2;
+int dButtonPin = A3;
+int encoderPinA = 9;
+int encoderPinB = 8;
+int encoderPos = 0;
+int encoderPinALast = LOW;
+int n = LOW;
+
+char displayCharBuffer[12];
 
 //************************************************************
 //**                      - SETUP -                         **
@@ -57,19 +62,13 @@ void setup() {
   IOShieldOled.clearBuffer();
   IOShieldOled.setCursor(0, 0);
   IOShieldOled.putString("R.A.D. NYC");
-  IOShieldOled.setCursor(0, 2);
-  IOShieldOled.putString("Dangerous");
-  IOShieldOled.setCursor(0, 3);
-  IOShieldOled.putString("MON ST Tester");
 
-  pinMode(13, OUTPUT);//led connected to indicate T/B ON
-  //TODO: CONFLICTS WITH SPI COMM
+  setupPins();
 
   Ethernet.begin(mac,ip);
   Udp.begin(localPort);
 
   Serial.begin(9600); 
-  Serial.println("Start");
 
   Wire.begin(); //Begin i2c communication
 
@@ -90,13 +89,37 @@ void setup() {
 }
 
 
+
+
+
 //************************************************************
 //**                     - MAIN LOOP -                      **
 //************************************************************
 void loop() {
+  //if L&R pressed, enter menu
+  while(digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW){
+    delay(800);
+    if(digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW){
+      itoa(localPort, displayCharBuffer, 10); //base 10!
+      IOShieldOled.clearBuffer();
+      IOShieldOled.setCursor(0, 0);
+      IOShieldOled.putString("PORT: ");
+      IOShieldOled.putString(displayCharBuffer);
+
+      IOShieldOled.setCursor(0, 3);
+      for (int i=0; i<4; i++) {
+        char ipCharBuffer[12];  //reserve the string space first
+        sprintf(ipCharBuffer, "%d", ip[i]);              
+        IOShieldOled.putString(ipCharBuffer); 
+        if(i < 3){        
+          IOShieldOled.putString("."); 
+        }        
+      }
+    }
+  }
+  
 
   unsigned int time = 0;
-
   // if there's data available, read a packet
   int packetSize = Udp.available(); // note that this includes the UDP header
   if(packetSize)
@@ -138,7 +161,7 @@ void loop() {
     else if(strcmp(packetBuffer, "O3") == 0){
       outputByte = B01000100;
     }
-    
+
     else if(strcmp(packetBuffer, "O4") == 0){
       outputByte = B10000100;
     }
@@ -157,14 +180,29 @@ void loop() {
 //************************************************************
 //**                 - USER FUNCTIONS -                     **
 //************************************************************
+void setupPins() {
+  //pins
+  pinMode(lButtonPin, INPUT);
+  digitalWrite(lButtonPin, HIGH);
+  pinMode(uButtonPin, INPUT);
+  digitalWrite(uButtonPin, HIGH);    
+  pinMode(rButtonPin, INPUT);
+  digitalWrite(rButtonPin, HIGH);    
+  pinMode(dButtonPin, INPUT);
+  digitalWrite(dButtonPin, HIGH);   
+  pinMode(encoderPinA, INPUT);
+  digitalWrite(encoderPinA, HIGH);
+  pinMode(encoderPinB, INPUT);
+  digitalWrite(encoderPinB, HIGH);  
+}
+
+void readEncoder(){
+ //TODO: put stuff here
+} 
+
 
 void updateState() {
   //Set I/O
-  
-//  Serial.print("inputByte: ");
-//  Serial.println(inputByte, BIN);
-//  Serial.print("outputByte: ");
-//  Serial.println(outputByte, BIN);
   ioByte = inputByte | outputByte; //bitwise OR to combine into one byte
   Wire.beginTransmission(0x20);  //i2c address of U501 on ST
   Wire.send(0x00);  //access GP0       
@@ -179,11 +217,17 @@ void updateState() {
   Wire.endTransmission();    // stop transmitting
   // (other relays on this expander are not implemented yet and will remain off)
 
+  IOShieldOled.clearBuffer();
+  IOShieldOled.setCursor(1, 0);
+  IOShieldOled.putChar(vol);
+
   if (debug == true){
     Serial.println(ioByte, BIN);
     Serial.println(volByte, BIN);
   } 
 }
+
+
 
 
 
@@ -231,7 +275,13 @@ void updateState() {
  1.7                        13
  */
 
-
+/*OLED HOOOKUP
+ CS   GND
+ RST  13
+ DC   12
+ CLK  11
+ DATA 10
+ */
 
 //tests/concepts
 
@@ -260,6 +310,11 @@ void updateState() {
 //      vol[1] = packetBuffer[2];//this does not?
 //      Serial.println(vol[1]);
 //    }
+
+
+
+
+
 
 
 
