@@ -54,6 +54,12 @@ int n = LOW;
 
 char displayCharBuffer[12];
 
+int menuIndex = 0;                               //keep track of menus
+
+long debounceTime = 0;  // the last time the output pin was toggled
+long debounceDelay = 50;    // the debounce time; increase if the output flickers
+
+
 //************************************************************
 //**                      - SETUP -                         **
 //************************************************************
@@ -95,41 +101,66 @@ void setup() {
 //************************************************************
 //**                     - MAIN LOOP -                      **
 //************************************************************
-void loop() {
-  //if L&R pressed, enter menu
-  while(digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW){
-    delay(800);
-    if(digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW){
-      itoa(localPort, displayCharBuffer, 10); //base 10!
-      IOShieldOled.clearBuffer();
-      IOShieldOled.setCursor(0, 0);
-      IOShieldOled.putString("PORT: ");
-      IOShieldOled.putString(displayCharBuffer);
+void loop() {      
 
-      IOShieldOled.setCursor(0, 3);
-      for (int i=0; i<4; i++) {
-        char ipCharBuffer[12];  //reserve the string space first
-        sprintf(ipCharBuffer, "%d", ip[i]);              
-        IOShieldOled.putString(ipCharBuffer); 
-        if(i < 3){        
-          IOShieldOled.putString("."); 
-        }        
-      }
+  if (digitalRead(uButtonPin) == LOW){
+    delay(250);
+    if (digitalRead(uButtonPin) == LOW && menuIndex < 2){
+      menuIndex++;
+      IOShieldOled.clearBuffer();
+      IOShieldOled.updateDisplay();
+      Serial.println(menuIndex);
     }
   }
-  
+
+  if (digitalRead(dButtonPin) == LOW){
+    delay(250);
+    if (digitalRead(dButtonPin) == LOW && menuIndex > 0){
+      menuIndex--;
+      IOShieldOled.clearBuffer();
+      IOShieldOled.updateDisplay();
+      Serial.println(menuIndex);
+    }
+  }
+
+ 
+ switch (menuIndex) {
+    case 0:
+      networkMenu();
+      break;
+    case 1:
+      currentDisplayMenu();
+      break;
+    case 2:
+      versionMenu();
+  }
+
+
+
+
+
+  //  }
+  //      //edit port
+  //      IOShieldOled.moveTo(47, 10);
+  //      IOShieldOled.drawLine(80, 10);//draw line under port
+  //      IOShieldOled.updateDisplay();
+  //      
+  //      if (digitalRead(dButtonPin) == LOW){
+  //        IOShieldOled.moveTo(47, 25);
+  //        IOShieldOled.drawLine(80, 25); //draw line under first ip byte
+  //        IOShieldOled.updateDisplay();
+  //      }
 
   unsigned int time = 0;
-  // if there's data available, read a packet
-  int packetSize = Udp.available(); // note that this includes the UDP header
+  int packetSize = Udp.available();                                               // note that this includes the UDP header
   if(packetSize)
-  {
-    packetSize = packetSize - 8;      // subtract the 8 byte header
+  {  
+    packetSize = packetSize - 8;                                                  // subtract the 8 byte header
     //Serial.print("Received packet of size ");
     //Serial.println(packetSize);
 
-    // read the packet into packetBufffer and get the senders IP addr and port number
-    Udp.readPacket(packetBuffer,UDP_TX_PACKET_MAX_SIZE, remoteIp, remotePort);
+    Udp.readPacket(packetBuffer,UDP_TX_PACKET_MAX_SIZE, remoteIp, remotePort);          // read the packet into packetBufffer and get the senders IP addr and port number
+
     if (packetDebug == true){
       Serial.println(packetBuffer);
     }
@@ -167,7 +198,11 @@ void loop() {
     }
 
     else {
-      vol = atoi(packetBuffer);
+      int i = atoi(packetBuffer);
+      //prevent values over 24
+      if (i < 25){
+        vol = i;
+      }
     }
 
     updateState();
@@ -196,10 +231,39 @@ void setupPins() {
   digitalWrite(encoderPinB, HIGH);  
 }
 
+
 void readEncoder(){
- //TODO: put stuff here
+  //TODO: put stuff here
 } 
 
+
+void networkMenu(){
+  itoa(localPort, displayCharBuffer, 10); //base 10!                       //should this be a function? 
+  IOShieldOled.setCursor(0, 0);
+  IOShieldOled.putString("PORT: ");
+  IOShieldOled.putString(displayCharBuffer);
+  IOShieldOled.setCursor(0, 3);
+  for (int i=0; i<4; i++) {
+    sprintf(displayCharBuffer, "%d", ip[i]);              
+    IOShieldOled.putString(displayCharBuffer); 
+    if(i < 3){        
+      IOShieldOled.putString("."); 
+    }
+  }
+}
+
+void currentDisplayMenu(){
+  IOShieldOled.clearBuffer();
+  sprintf(displayCharBuffer, "Volume: %d", vol);         
+  IOShieldOled.setCursor(0, 0);
+  IOShieldOled.putString(displayCharBuffer); 
+}
+
+void versionMenu(){
+  IOShieldOled.clearBuffer();        
+  IOShieldOled.setCursor(0, 0);
+  IOShieldOled.putString("Version: 1.0Beta"); 
+}
 
 void updateState() {
   //Set I/O
@@ -217,15 +281,23 @@ void updateState() {
   Wire.endTransmission();    // stop transmitting
   // (other relays on this expander are not implemented yet and will remain off)
 
-  IOShieldOled.clearBuffer();
-  IOShieldOled.setCursor(1, 0);
-  IOShieldOled.putChar(vol);
+  
 
   if (debug == true){
     Serial.println(ioByte, BIN);
     Serial.println(volByte, BIN);
   } 
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -283,6 +355,26 @@ void updateState() {
  DATA 10
  */
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //tests/concepts
 
 //void setIn1() {
@@ -310,6 +402,9 @@ void updateState() {
 //      vol[1] = packetBuffer[2];//this does not?
 //      Serial.println(vol[1]);
 //    }
+
+
+
 
 
 
