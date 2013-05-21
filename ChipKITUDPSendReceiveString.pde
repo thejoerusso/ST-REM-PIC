@@ -48,16 +48,19 @@ int rButtonPin = A2;
 int dButtonPin = A3;
 int encoderPinA = 9;
 int encoderPinB = 8;
-int encoderPos = 0;
 int encoderPinALast = LOW;
 int n = LOW;
+bool encoderUp = false;
+bool encoderDn = false;
 
 char displayCharBuffer[12];
 
 int menuIndex = 0;                               //keep track of menus
+int editIndex = 0;                               //which parameter to edit
 
-long debounceTime = 0;  // the last time the output pin was toggled
-long debounceDelay = 50;    // the debounce time; increase if the output flickers
+int debounceDelay = 250;    // the debounce time; increase if the output flickers
+
+int q=0;
 
 
 //************************************************************
@@ -73,6 +76,7 @@ void setup() {
 
   Ethernet.begin(mac,ip);
   Udp.begin(localPort);
+  
 
   Serial.begin(9600); 
 
@@ -101,55 +105,70 @@ void setup() {
 //************************************************************
 //**                     - MAIN LOOP -                      **
 //************************************************************
-void loop() {      
+void loop() {  
+
+  readEncoder();
 
   if (digitalRead(uButtonPin) == LOW){
-    delay(250);
+    delay(debounceDelay);
     if (digitalRead(uButtonPin) == LOW && menuIndex < 2){
       menuIndex++;
       IOShieldOled.clearBuffer();
       IOShieldOled.updateDisplay();
-      Serial.println(menuIndex);
     }
   }
 
   if (digitalRead(dButtonPin) == LOW){
-    delay(250);
+    delay(debounceDelay);
     if (digitalRead(dButtonPin) == LOW && menuIndex > 0){
       menuIndex--;
       IOShieldOled.clearBuffer();
-      IOShieldOled.updateDisplay();
-      Serial.println(menuIndex);
+      IOShieldOled.updateDisplay();      
     }
   }
 
- 
- switch (menuIndex) {
-    case 0:
-      networkMenu();
-      break;
-    case 1:
-      currentDisplayMenu();
-      break;
-    case 2:
-      versionMenu();
+  if (digitalRead(rButtonPin) == LOW){
+    delay(debounceDelay);
+    if (digitalRead(rButtonPin) == LOW && editIndex < 4){
+      editIndex++;
+      IOShieldOled.clearBuffer();
+      IOShieldOled.updateDisplay();
+      
+    }
+  }
+
+  if (digitalRead(lButtonPin) == LOW){
+    delay(debounceDelay);
+    if (digitalRead(lButtonPin) == LOW && editIndex > 0){
+      editIndex--;
+      IOShieldOled.clearBuffer();
+      IOShieldOled.updateDisplay();
+    }
+  }
+  
+  if (digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW) {
+    delay(debounceDelay);
+    if (digitalRead(lButtonPin) == LOW && digitalRead(rButtonPin) == LOW){
+    Udp.stop();
+    Ethernet.begin(mac,ip);
+    Udp.begin(localPort);
+    Serial.println(localPort);
+    }
   }
 
 
 
-
-
-  //  }
-  //      //edit port
-  //      IOShieldOled.moveTo(47, 10);
-  //      IOShieldOled.drawLine(80, 10);//draw line under port
-  //      IOShieldOled.updateDisplay();
-  //      
-  //      if (digitalRead(dButtonPin) == LOW){
-  //        IOShieldOled.moveTo(47, 25);
-  //        IOShieldOled.drawLine(80, 25); //draw line under first ip byte
-  //        IOShieldOled.updateDisplay();
-  //      }
+  switch (menuIndex) {
+  case 0:
+    networkMenu();
+    break;
+  case 1:
+    currentDisplayMenu();
+    break;
+  case 2:
+    debugMenu();
+    break;
+  }
 
   unsigned int time = 0;
   int packetSize = Udp.available();                                               // note that this includes the UDP header
@@ -233,22 +252,102 @@ void setupPins() {
 
 
 void readEncoder(){
-  //TODO: put stuff here
+  
+   n = digitalRead(encoderPinA);
+   if ((encoderPinALast == LOW) && (n == HIGH)) {
+     if (digitalRead(encoderPinB) == LOW) {
+       encoderUp = true;
+     } else {
+       encoderDn = true;
+     }
+   } 
+   encoderPinALast = n;
 } 
 
 
-void networkMenu(){
-  itoa(localPort, displayCharBuffer, 10); //base 10!                       //should this be a function? 
+
+
+void networkMenu(){  
+  
+  itoa(localPort, displayCharBuffer, 10);  //base 10!
   IOShieldOled.setCursor(0, 0);
   IOShieldOled.putString("PORT: ");
   IOShieldOled.putString(displayCharBuffer);
-  IOShieldOled.setCursor(0, 3);
+  IOShieldOled.setCursor(0, 2);
   for (int i=0; i<4; i++) {
     sprintf(displayCharBuffer, "%d", ip[i]);              
     IOShieldOled.putString(displayCharBuffer); 
     if(i < 3){        
       IOShieldOled.putString("."); 
     }
+  }
+  
+  
+  switch(editIndex){
+    case 0:
+      IOShieldOled.moveTo(47, 10);
+      IOShieldOled.drawLine(80, 10);                //draw line under port
+      if (encoderUp == true) {
+        localPort++;
+      }
+      if (encoderDn == true) {
+        localPort--;
+      }
+      encoderUp = false;
+      encoderDn = false;
+      break;
+      
+     case 1:
+      IOShieldOled.moveTo(0, 29);
+      IOShieldOled.drawLine(24, 29);  
+      if (encoderUp == true) {
+        ip[0]++;
+      }
+      if (encoderDn == true) {
+        ip[0]--;
+      }
+      encoderUp = false;
+      encoderDn = false;
+      break;
+      
+     case 2:
+      IOShieldOled.moveTo(32, 29);
+      IOShieldOled.drawLine(55, 29);  
+        if (encoderUp == true) {
+        ip[1]++;
+      }
+      if (encoderDn == true) {
+        ip[1]--;
+      }
+      encoderUp = false;
+      encoderDn = false;      
+      break;
+      
+     case 3:
+      IOShieldOled.moveTo(64, 29);
+      IOShieldOled.drawLine(72, 29);
+      if (encoderUp == true) {
+        ip[2]++;
+      }
+      if (encoderDn == true) {
+        ip[2]--;
+      }
+      encoderUp = false;
+      encoderDn = false;      
+      break;
+      
+     case 4:
+      IOShieldOled.moveTo(79, 29);
+      IOShieldOled.drawLine(104, 29);
+      if (encoderUp == true) {
+        ip[3]++;
+      }
+      if (encoderDn == true) {
+        ip[3]--;
+      }
+      encoderUp = false;
+      encoderDn = false;      
+      break;
   }
 }
 
@@ -259,11 +358,26 @@ void currentDisplayMenu(){
   IOShieldOled.putString(displayCharBuffer); 
 }
 
-void versionMenu(){
-  IOShieldOled.clearBuffer();        
+
+void debugMenu(){
   IOShieldOled.setCursor(0, 0);
-  IOShieldOled.putString("Version: 1.0Beta"); 
+  IOShieldOled.putString("Debug:"); 
+  if (debug == true){
+    IOShieldOled.putString("ON");
+  } 
+  else {
+    IOShieldOled.putString("OFF");
+  }
+  IOShieldOled.setCursor(0, 2);
+  IOShieldOled.putString("PacketDebug:");
+  if (packetDebug == true){
+    IOShieldOled.putString("ON");
+  } 
+  else {
+    IOShieldOled.putString("OFF");
+  }
 }
+
 
 void updateState() {
   //Set I/O
@@ -281,13 +395,14 @@ void updateState() {
   Wire.endTransmission();    // stop transmitting
   // (other relays on this expander are not implemented yet and will remain off)
 
-  
-
   if (debug == true){
     Serial.println(ioByte, BIN);
     Serial.println(volByte, BIN);
   } 
 }
+
+
+
 
 
 
@@ -402,6 +517,7 @@ void updateState() {
 //      vol[1] = packetBuffer[2];//this does not?
 //      Serial.println(vol[1]);
 //    }
+
 
 
 
