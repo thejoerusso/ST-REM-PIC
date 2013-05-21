@@ -20,8 +20,8 @@ bool packetDebug = false;
 byte mac[] = {  
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };          // A zero MAC address means that the chipKIT MAC is to be used
 byte ip[] = { 
-  192,168,002,250 };                               //default ip
-unsigned short localPort = 6000;  
+  192,168,000,250 };                               //default ip
+unsigned short localPort = 8888;  
 // default local port to listen on
 byte remoteIp[4];                                // holds received packet's originating IP
 unsigned short remotePort;                       // holds received packet's originating port
@@ -129,7 +129,7 @@ void loop() {
 
   if (digitalRead(rButtonPin) == LOW){
     delay(debounceDelay);
-    if (digitalRead(rButtonPin) == LOW && editIndex < 4){
+    if (digitalRead(rButtonPin) == LOW && editIndex < 5){
       editIndex++;
       IOShieldOled.clearBuffer();
       IOShieldOled.updateDisplay();
@@ -285,6 +285,8 @@ void networkMenu(){
   
   switch(editIndex){
     case 0:
+      break;
+    case 1:
       IOShieldOled.moveTo(47, 10);
       IOShieldOled.drawLine(80, 10);                //draw line under port
       if (encoderUp == true) {
@@ -297,7 +299,7 @@ void networkMenu(){
       encoderDn = false;
       break;
       
-     case 1:
+     case 2:
       IOShieldOled.moveTo(0, 29);
       IOShieldOled.drawLine(24, 29);  
       if (encoderUp == true) {
@@ -310,7 +312,7 @@ void networkMenu(){
       encoderDn = false;
       break;
       
-     case 2:
+     case 3:
       IOShieldOled.moveTo(32, 29);
       IOShieldOled.drawLine(55, 29);  
         if (encoderUp == true) {
@@ -323,7 +325,7 @@ void networkMenu(){
       encoderDn = false;      
       break;
       
-     case 3:
+     case 4:
       IOShieldOled.moveTo(64, 29);
       IOShieldOled.drawLine(72, 29);
       if (encoderUp == true) {
@@ -336,7 +338,7 @@ void networkMenu(){
       encoderDn = false;      
       break;
       
-     case 4:
+     case 5:
       IOShieldOled.moveTo(79, 29);
       IOShieldOled.drawLine(104, 29);
       if (encoderUp == true) {
