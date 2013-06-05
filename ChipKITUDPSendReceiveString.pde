@@ -8,6 +8,7 @@
 #include <chipKITEthernet.h>
 #include <Wire.h>
 #include <IOShieldOled.h>
+#include "display.h"
 
 
 //************************************************************
@@ -50,8 +51,6 @@ int encoderPinA = 9;
 int encoderPinB = 8;
 int encoderPinALast = LOW;
 int n = LOW;
-bool encoderUp = false;
-bool encoderDn = false;
 
 char displayCharBuffer[12];
 
@@ -107,7 +106,7 @@ void setup() {
 //************************************************************
 void loop() {  
 
-  readEncoder();
+  //readEncoder();
 
   if (digitalRead(uButtonPin) == LOW){
     delay(debounceDelay);
@@ -251,17 +250,19 @@ void setupPins() {
 }
 
 
-void readEncoder(){
-  
+int readEncoder(int val){
+   
    n = digitalRead(encoderPinA);
    if ((encoderPinALast == LOW) && (n == HIGH)) {
      if (digitalRead(encoderPinB) == LOW) {
-       encoderUp = true;
+       val++;
      } else {
-       encoderDn = true;
+       val--;
      }
    } 
    encoderPinALast = n;
+   Serial.println(val);
+   return val;
 } 
 
 
@@ -289,66 +290,31 @@ void networkMenu(){
     case 1:
       IOShieldOled.moveTo(47, 10);
       IOShieldOled.drawLine(80, 10);                //draw line under port
-      if (encoderUp == true) {
-        localPort++;
-      }
-      if (encoderDn == true) {
-        localPort--;
-      }
-      encoderUp = false;
-      encoderDn = false;
+      localPort = readEncoder(localPort);
       break;
-      
-     case 2:
+        
+      case 2:
       IOShieldOled.moveTo(0, 29);
       IOShieldOled.drawLine(24, 29);  
-      if (encoderUp == true) {
-        ip[0]++;
-      }
-      if (encoderDn == true) {
-        ip[0]--;
-      }
-      encoderUp = false;
-      encoderDn = false;
+      ip[0] = readEncoder(ip[0]);
       break;
       
      case 3:
       IOShieldOled.moveTo(32, 29);
       IOShieldOled.drawLine(55, 29);  
-        if (encoderUp == true) {
-        ip[1]++;
-      }
-      if (encoderDn == true) {
-        ip[1]--;
-      }
-      encoderUp = false;
-      encoderDn = false;      
+      ip[1] = readEncoder(ip[1]);   
       break;
       
      case 4:
       IOShieldOled.moveTo(64, 29);
       IOShieldOled.drawLine(72, 29);
-      if (encoderUp == true) {
-        ip[2]++;
-      }
-      if (encoderDn == true) {
-        ip[2]--;
-      }
-      encoderUp = false;
-      encoderDn = false;      
+      ip[2] = readEncoder(ip[2]);
       break;
       
      case 5:
       IOShieldOled.moveTo(79, 29);
       IOShieldOled.drawLine(104, 29);
-      if (encoderUp == true) {
-        ip[3]++;
-      }
-      if (encoderDn == true) {
-        ip[3]--;
-      }
-      encoderUp = false;
-      encoderDn = false;      
+      ip[3] = readEncoder(ip[3]);
       break;
   }
 }
